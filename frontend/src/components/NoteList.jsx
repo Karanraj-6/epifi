@@ -1,51 +1,67 @@
-import { Plus, Star, Trash2 } from 'lucide-react';
+import { Plus, Star, Trash2, Calendar, FileText } from 'lucide-react';
 
 export default function NoteList({ notes, selectedId, onSelect, onNew, onToggleFavorite, onDelete }) {
   return (
     <aside className="sidebar">
-      <button className="new-note" onClick={onNew}>
-        <Plus size={18} />
-        New note
-      </button>
+      <div className="sidebar-header">
+        <button className="new-note-premium" onClick={onNew}>
+          <Plus size={20} />
+          <span>New note</span>
+        </button>
+      </div>
 
-      <div className="note-list">
-        {notes.map((note) => (
-          <article
-            key={note.id}
-            className={`note-card ${selectedId === note.id ? 'selected' : ''}`}
-            onClick={() => onSelect(note)}
-          >
-            <div className="note-card-top">
-              <h2>{note.title}</h2>
-              <button
-                className={`icon-button ${note.is_favorite ? 'active-star' : ''}`}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  onToggleFavorite(note);
-                }}
-                title={note.is_favorite ? 'Remove favorite' : 'Mark favorite'}
+      <div className="note-list-scroll">
+        {notes.length === 0 ? (
+          <div className="empty-state-container">
+            <FileText size={40} />
+            <p>Your workspace is empty. Create your first note!</p>
+          </div>
+        ) : (
+          <div className="note-list-items">
+            {notes.map((note) => (
+              <article
+                key={note.id}
+                className={`note-card-premium ${selectedId === note.id ? 'selected' : ''}`}
+                onClick={() => onSelect(note)}
               >
-                <Star size={17} />
-              </button>
-            </div>
-            <p>{note.content}</p>
-            <div className="note-card-bottom">
-              <span>{new Date(note.updated_at).toLocaleDateString()}</span>
-              <button
-                className="icon-button danger"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  onDelete(note);
-                }}
-                title="Delete note"
-              >
-                <Trash2 size={17} />
-              </button>
-            </div>
-          </article>
-        ))}
-
-        {notes.length === 0 && <p className="empty-state">No notes yet.</p>}
+                <div className="note-card-content">
+                  <div className="note-card-header">
+                    <h3>{note.title || 'Untitled Note'}</h3>
+                    <button
+                      className={`favorite-toggle ${note.is_favorite ? 'active' : ''}`}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onToggleFavorite(note);
+                      }}
+                    >
+                      <Star size={16} fill={note.is_favorite ? "currentColor" : "none"} />
+                    </button>
+                  </div>
+                  
+                  <p className="note-excerpt">
+                    {note.content.replace(/<[^>]*>/g, '') || 'No content yet...'}
+                  </p>
+                  
+                  <div className="note-card-footer">
+                    <div className="note-date">
+                      <Calendar size={14} />
+                      <span>{new Date(note.updated_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
+                    </div>
+                    <button
+                      className="delete-note-btn"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onDelete(note);
+                      }}
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
       </div>
     </aside>
   );

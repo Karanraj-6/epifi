@@ -10,7 +10,7 @@ const __dirname = path.dirname(__filename);
 
 export const pool = new Pool({
   connectionString: config.databaseUrl,
-  ssl: config.databaseUrl?.includes('supabase.co')
+  ssl: config.databaseUrl?.includes('supabase.')
     ? { rejectUnauthorized: false }
     : process.env.PGSSLMODE === 'require'
       ? { rejectUnauthorized: false }

@@ -47,6 +47,8 @@ export function createApi(token) {
       body: JSON.stringify({ is_favorite: isFavorite })
     }),
     search: (q) => request(`/search?q=${encodeURIComponent(q)}`),
+    listSharedNotes: () => request('/notes/shared'),
+    improveNote: (payload) => request('/notes/improve', { method: 'POST', body: JSON.stringify(payload) }),
     about: () => request('/about')
   };
 }

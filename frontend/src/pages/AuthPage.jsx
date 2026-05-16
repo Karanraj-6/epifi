@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 
 export default function AuthPage({ api, onAuth }) {
   const [mode, setMode] = useState('login');
@@ -29,13 +29,19 @@ export default function AuthPage({ api, onAuth }) {
 
   return (
     <main className="auth-shell">
-      <section className="auth-panel">
-        <div>
+      <div className="auth-hero">
+        <div className="hero-visual">
+          <div className="abstract-shape"></div>
+          <div className="abstract-shape-2"></div>
+        </div>
+        <div className="hero-text">
           <p className="eyebrow">Personal notes</p>
           <h1>Keep your ideas close and share the useful ones.</h1>
         </div>
-
-        <form onSubmit={submit} className="auth-form">
+      </div>
+      
+      <div className="auth-container">
+        <form onSubmit={submit} className="auth-form glass">
           <div className="segmented" aria-label="Authentication mode">
             <button type="button" className={mode === 'login' ? 'active' : ''} onClick={() => setMode('login')}>
               Login
@@ -53,6 +59,7 @@ export default function AuthPage({ api, onAuth }) {
               onChange={(event) => setForm({ ...form, email: event.target.value })}
               autoComplete="email"
               required
+              placeholder="name@example.com"
             />
           </label>
 
@@ -65,6 +72,7 @@ export default function AuthPage({ api, onAuth }) {
               autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
               minLength={mode === 'register' ? 8 : 1}
               required
+              placeholder="••••••••"
             />
           </label>
 
@@ -74,7 +82,7 @@ export default function AuthPage({ api, onAuth }) {
             {busy ? 'Working...' : mode === 'login' ? 'Sign in' : 'Create account'}
           </button>
         </form>
-      </section>
+      </div>
     </main>
   );
 }

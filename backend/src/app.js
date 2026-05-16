@@ -5,12 +5,21 @@ import { config } from './config/env.js';
 import { router } from './routes/index.js';
 import { errorHandler } from './utils/errors.js';
 
+function corsOrigin(origin, callback) {
+  if (!origin || config.corsOrigins.includes('*') || config.corsOrigins.includes(origin)) {
+    callback(null, true);
+    return;
+  }
+
+  callback(new Error('Not allowed by CORS'));
+}
+
 export function createApp() {
   const app = express();
 
   app.use(helmet());
   app.use(cors({
-    origin: config.corsOrigin === '*' ? true : config.corsOrigin,
+    origin: corsOrigin,
     exposedHeaders: ['X-Total-Count', 'X-Page', 'X-Limit']
   }));
   app.use(express.json({ limit: '1mb' }));

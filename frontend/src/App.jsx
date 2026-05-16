@@ -1,7 +1,9 @@
-import { useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { createApi } from './services/api.js';
 import AuthPage from './pages/AuthPage.jsx';
 import WorkspacePage from './pages/WorkspacePage.jsx';
+import { ToastProvider } from './context/ToastContext.jsx';
+import ToastContainer from './components/ToastContainer.jsx';
 
 export default function App() {
   const [token, setToken] = useState(() => localStorage.getItem('notes_token') || '');
@@ -17,9 +19,16 @@ export default function App() {
     setToken('');
   }
 
-  if (!token) {
-    return <AuthPage api={api} onAuth={handleAuth} />;
-  }
+  const content = !token ? (
+    <AuthPage api={api} onAuth={handleAuth} />
+  ) : (
+    <WorkspacePage api={api} onLogout={logout} />
+  );
 
-  return <WorkspacePage api={api} onLogout={logout} />;
+  return (
+    <ToastProvider>
+      {content}
+      <ToastContainer />
+    </ToastProvider>
+  );
 }

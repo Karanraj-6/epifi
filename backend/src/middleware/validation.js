@@ -19,6 +19,10 @@ export const noteSchema = z.object({
   content: z.string().trim().min(1).max(10000)
 });
 
+export const improveSchema = z.object({
+  content: z.string().trim().min(1).max(10000)
+});
+
 export const shareSchema = z.object({
   share_with_email: z.string().trim().email().max(254).transform((email) => email.toLowerCase())
 });

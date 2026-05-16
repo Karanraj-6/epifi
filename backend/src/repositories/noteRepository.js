@@ -34,13 +34,9 @@ export async function countOwnedNotes(userId) {
 
 export async function createNote(ownerId, title, content) {
   const { rows } = await query(
-    `WITH inserted_note AS (
-       INSERT INTO notes (owner_id, title, content)
-       VALUES ($1, $2, $3)
-       RETURNING id
-     )
-     ${noteSelect()}
-     JOIN inserted_note ON inserted_note.id = notes.id`,
+    `INSERT INTO notes (owner_id, title, content)
+     VALUES ($1, $2, $3)
+     RETURNING id, title, content, is_favorite, created_at, updated_at`,
     [ownerId, title, content]
   );
   return rows[0] || null;
@@ -67,14 +63,10 @@ export async function findOwnedNoteById(noteId, ownerId) {
 
 export async function updateOwnedNote(noteId, ownerId, title, content) {
   const { rows } = await query(
-    `WITH updated_note AS (
-       UPDATE notes
-       SET title = $3, content = $4
-       WHERE id = $1 AND owner_id = $2
-       RETURNING id
-     )
-     ${noteSelect()}
-     JOIN updated_note ON updated_note.id = notes.id`,
+    `UPDATE notes
+     SET title = $3, content = $4
+     WHERE id = $1 AND owner_id = $2
+     RETURNING id, title, content, is_favorite, created_at, updated_at`,
     [noteId, ownerId, title, content]
   );
   return rows[0] || null;
@@ -99,14 +91,10 @@ export async function shareNoteWithUser(noteId, userId) {
 
 export async function setOwnedNoteFavorite(noteId, ownerId, isFavorite) {
   const { rows } = await query(
-    `WITH updated_note AS (
-       UPDATE notes
-       SET is_favorite = $3
-       WHERE id = $1 AND owner_id = $2
-       RETURNING id
-     )
-     ${noteSelect()}
-     JOIN updated_note ON updated_note.id = notes.id`,
+    `UPDATE notes
+     SET is_favorite = $3
+     WHERE id = $1 AND owner_id = $2
+     RETURNING id, title, content, is_favorite, created_at, updated_at`,
     [noteId, ownerId, isFavorite]
   );
   return rows[0] || null;
@@ -122,6 +110,19 @@ export async function searchAccessibleNotes(searchText, userId) {
               notes.updated_at DESC
      LIMIT 50`,
     [searchText, userId]
+  );
+  return rows;
+}
+
+export async function getSharedNotes(userId) {
+  const { rows } = await query(
+    `SELECT notes.id, notes.title, users.email as sender_email
+     FROM notes
+     JOIN note_shares ON note_shares.note_id = notes.id
+     JOIN users ON users.id = notes.owner_id
+     WHERE note_shares.user_id = $1
+     ORDER BY note_shares.shared_at DESC`,
+    [userId]
   );
   return rows;
 }
