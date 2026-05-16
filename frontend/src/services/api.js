@@ -11,6 +11,15 @@ async function parseResponse(response) {
     throw new Error(message);
   }
 
+  // If it's a list response with pagination headers, return them along with the body
+  const totalCount = response.headers.get('X-Total-Count');
+  if (totalCount !== null) {
+    return {
+      data: body,
+      total: parseInt(totalCount, 10)
+    };
+  }
+
   return body;
 }
 
@@ -36,7 +45,7 @@ export function createApi(token) {
   return {
     register: (payload) => request('/register', { method: 'POST', body: JSON.stringify(payload) }),
     login: (payload) => request('/login', { method: 'POST', body: JSON.stringify(payload) }),
-    listNotes: () => request('/notes'),
+    listNotes: (page = 1, limit = 20) => request(`/notes?page=${page}&limit=${limit}`),
     getNote: (id) => request(`/notes/${id}`),
     createNote: (payload) => request('/notes', { method: 'POST', body: JSON.stringify(payload) }),
     updateNote: (id, payload) => request(`/notes/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),

@@ -1,6 +1,20 @@
 import { Plus, Star, Trash2, Calendar, FileText } from 'lucide-react';
 
-export default function NoteList({ notes, selectedId, onSelect, onNew, onToggleFavorite, onDelete }) {
+export default function NoteList({ 
+  notes, 
+  selectedId, 
+  onSelect, 
+  onNew, 
+  onToggleFavorite, 
+  onDelete, 
+  currentPage, 
+  totalCount, 
+  onPageChange,
+  isLoading
+}) {
+  const totalPages = Math.ceil(totalCount / 3);
+  const pages = Array.from({ length: totalPages }, (_, i) => i + 1);
+
   return (
     <aside className="sidebar">
       <div className="sidebar-header">
@@ -11,7 +25,7 @@ export default function NoteList({ notes, selectedId, onSelect, onNew, onToggleF
       </div>
 
       <div className="note-list-scroll">
-        {notes.length === 0 ? (
+        {notes.length === 0 && !isLoading ? (
           <div className="empty-state-container">
             <FileText size={40} />
             <p>Your workspace is empty. Create your first note!</p>
@@ -63,6 +77,37 @@ export default function NoteList({ notes, selectedId, onSelect, onNew, onToggleF
           </div>
         )}
       </div>
+
+      {totalPages > 1 && (
+        <div className="pagination-numbered">
+          <button 
+            className="page-nav-btn" 
+            onClick={() => onPageChange(currentPage - 1)}
+            disabled={currentPage === 1 || isLoading}
+          >
+            &laquo;
+          </button>
+          
+          {pages.map(p => (
+            <button
+              key={p}
+              className={`page-number ${p === currentPage ? 'active' : ''}`}
+              onClick={() => onPageChange(p)}
+              disabled={isLoading}
+            >
+              {p}
+            </button>
+          ))}
+
+          <button 
+            className="page-nav-btn" 
+            onClick={() => onPageChange(currentPage + 1)}
+            disabled={currentPage === totalPages || isLoading}
+          >
+            &raquo;
+          </button>
+        </div>
+      )}
     </aside>
   );
 }

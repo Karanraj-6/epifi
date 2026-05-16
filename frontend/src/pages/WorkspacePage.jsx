@@ -18,21 +18,40 @@ export default function WorkspacePage({ api, onLogout }) {
   const [lookupId, setLookupId] = useState('');
   const [sharedNotesList, setSharedNotesList] = useState([]);
   const [showSharedModal, setShowSharedModal] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isImproving, setIsImproving] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
   const [preAiContent, setPreAiContent] = useState(null);
+  const [page, setPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
 
   useEffect(() => {
-    loadNotes();
+    loadNotes(1, true);
   }, []);
 
-  async function loadNotes() {
+  async function loadNotes(targetPage = 1, force = false) {
+    // Optimization: Don't reload if we are already on this page, unless forced (e.g. after save/delete)
+    if (targetPage === page && notes.length > 0 && !force) return;
+
     try {
-      const data = await api.listNotes();
-      setNotes(data);
+      setIsSyncing(true);
+      const response = await api.listNotes(targetPage, 3);
+      const notesData = response.data || response;
+      const total = response.total !== undefined ? response.total : notesData.length;
+      
+      setNotes(notesData);
+      setPage(targetPage);
+      setTotalCount(total);
     } catch (err) {
       showToast(err.message, 'error');
+    } finally {
+      setIsSyncing(false);
     }
   }
+
+  // loadMore removed in favor of numbered pagination
 
   function startNew() {
     setSelectedNote(null);
@@ -40,6 +59,7 @@ export default function WorkspacePage({ api, onLogout }) {
   }
 
   function selectNote(note) {
+    if (selectedNote?.id === note.id) return; // Optimization: Don't reset if already selected
     setSelectedNote(note);
     setDraft({
       title: note.title,
@@ -55,7 +75,7 @@ export default function WorkspacePage({ api, onLogout }) {
     }
 
     try {
-      setIsLoading(true);
+      setIsSaving(true);
       const payload = { title: draft.title, content: draft.content };
       const saved = selectedNote?.id && !selectedNote.shared
         ? await api.updateNote(selectedNote.id, payload)
@@ -68,12 +88,12 @@ export default function WorkspacePage({ api, onLogout }) {
 
       setSelectedNote(saved);
       setDraft({ title: saved.title, content: saved.content, is_favorite: saved.is_favorite });
-      await loadNotes();
+      await loadNotes(page, true); 
       showToast('Saved successfully.', 'success');
     } catch (err) {
       showToast(err.message, 'error');
     } finally {
-      setIsLoading(false);
+      setIsSaving(false);
     }
   }
 
@@ -81,7 +101,7 @@ export default function WorkspacePage({ api, onLogout }) {
     try {
       await api.deleteNote(note.id);
       if (selectedNote?.id === note.id) startNew();
-      await loadNotes();
+      await loadNotes(page, true); // Optimization: Refresh current page
       showToast('Note deleted.', 'info');
     } catch (err) {
       showToast(err.message, 'error');
@@ -106,27 +126,35 @@ export default function WorkspacePage({ api, onLogout }) {
     if (!selectedNote?.id || !shareEmail) return;
 
     try {
+      setIsSharing(true);
       const result = await api.shareNote(selectedNote.id, { share_with_email: shareEmail });
       setShareEmail('');
       showToast(result.message, 'success');
     } catch (err) {
       showToast(err.message, 'error');
+    } finally {
+      setIsSharing(false);
     }
   }
 
   async function runSearch(event) {
     event.preventDefault();
     if (!searchQuery.trim()) {
-      await loadNotes();
+      await loadNotes(1, true);
       return;
     }
 
     try {
-      const data = await api.search(searchQuery);
+      setIsSearching(true);
+      const data = await api.searchNotes(searchQuery);
       setNotes(data);
+      setTotalCount(data.length);
+      setPage(1);
       showToast(`Found ${data.length} note${data.length === 1 ? '' : 's'}.`, 'info');
     } catch (err) {
       showToast(err.message, 'error');
+    } finally {
+      setIsSearching(false);
     }
   }
 
@@ -135,12 +163,16 @@ export default function WorkspacePage({ api, onLogout }) {
     if (!lookupId.trim()) return;
 
     try {
+      setIsSyncing(true);
       const note = await api.getNote(lookupId.trim());
       setSelectedNote({ ...note, shared: true });
       setDraft({ title: note.title, content: note.content, is_favorite: note.is_favorite });
+      setLookupId('');
       showToast('Shared note opened.', 'success');
     } catch (err) {
       showToast(err.message, 'error');
+    } finally {
+      setIsSyncing(false);
     }
   }
 
@@ -151,7 +183,7 @@ export default function WorkspacePage({ api, onLogout }) {
     }
 
     try {
-      setIsLoading(true);
+      setIsImproving(true);
       showToast('AI is thinking...', 'info');
       setPreAiContent(draft.content);
       const result = await api.improveNote({ content: draft.content });
@@ -160,7 +192,7 @@ export default function WorkspacePage({ api, onLogout }) {
     } catch (err) {
       showToast(`AI Error: ${err.message}`, 'error');
     } finally {
-      setIsLoading(false);
+      setIsImproving(false);
     }
   }
 
@@ -174,11 +206,14 @@ export default function WorkspacePage({ api, onLogout }) {
 
   async function loadSharedNotesList() {
     try {
+      setIsSyncing(true);
       const data = await api.listSharedNotes();
       setSharedNotesList(data);
       setShowSharedModal(true);
     } catch (err) {
       showToast(err.message, 'error');
+    } finally {
+      setIsSyncing(false);
     }
   }
 
@@ -196,9 +231,9 @@ export default function WorkspacePage({ api, onLogout }) {
   return (
     <main className="app-shell">
       <header className="topbar">
-        <div>
-          <p className="eyebrow">Notes</p>
-          <h1>Workspace</h1>
+        <div className="logo-section">
+          <div className="logo-dash"></div>
+          <h1 className="logo-text">NOTES</h1>
         </div>
         <button className="icon-button" onClick={onLogout} title="Sign out">
           <LogOut size={19} />
@@ -213,6 +248,7 @@ export default function WorkspacePage({ api, onLogout }) {
         onSearch={runSearch}
         onOpenShared={openSharedNote}
         onLoadSharedNotes={loadSharedNotesList}
+        isLoading={isSearching || isSyncing}
       />
 
       {showSharedModal && (
@@ -247,6 +283,10 @@ export default function WorkspacePage({ api, onLogout }) {
           onNew={startNew}
           onToggleFavorite={toggleFavorite}
           onDelete={deleteNote}
+          currentPage={page}
+          totalCount={totalCount}
+          onPageChange={loadNotes}
+          isLoading={isSyncing}
         />
 
         <Editor
@@ -259,7 +299,7 @@ export default function WorkspacePage({ api, onLogout }) {
           onUndoImprove={undoImproveNote}
           canUndo={preAiContent !== null}
           onCloseShared={startNew}
-          isLoading={isLoading}
+          isLoading={isSaving || isImproving}
         />
 
         <SharePanel
@@ -267,6 +307,7 @@ export default function WorkspacePage({ api, onLogout }) {
           shareEmail={shareEmail}
           setShareEmail={setShareEmail}
           onShare={shareNote}
+          isLoading={isSharing}
         />
       </div>
     </main>
