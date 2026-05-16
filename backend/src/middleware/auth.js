@@ -28,7 +28,7 @@ export async function requireAuth(req, res, next) {
     const header = req.get('authorization') || '';
     const [scheme, token] = header.split(' ');
 
-    if (scheme !== 'Bearer' || !token) {
+    if (!scheme || scheme.toLowerCase() !== 'bearer' || !token) {
       throw new ApiError(401, 'Missing or invalid authorization token');
     }
 
